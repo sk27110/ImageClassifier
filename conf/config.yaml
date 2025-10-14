@@ -1,8 +1,11 @@
 defaults:
   - dataset: gtsrb   
   - transforms: base_transform
-  - dataloader: base_dataloader
+  - dataloader: gtsrb_dataloader
   - train: train
+  - model: gtsrbcnn
+  - load_dataset: gtsrb
+  - metrics: base_classification_metrics
 # batch_size: 64
 # epochs: 20
 # lr: 0.001

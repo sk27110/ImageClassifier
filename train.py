@@ -1,18 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import random_split
+from torch.utils.data import random_split, Subset
 from omegaconf import DictConfig, OmegaConf
-from src.dataloader.base_dataloader import GTSRBDataLoader
+from hydra.utils import instantiate
 import hydra
-from tqdm import tqdm
 
 from src.dataset.load_dataset import download_dataset
-from src.dataset.gtsrb_dataset import GtsrbDataset
-from src.transforms.transforms import get_normalize_transform
-from src.model.base_model import GTSRBCNN
-from src.metrics.base_metrics import get_classification_metrics
-from src.trainer import Trainer 
+from src.trainer import Trainer
 
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.3")
@@ -21,50 +16,56 @@ def main(cfg: DictConfig):
     # 1️⃣ Конфигурация и скачивание датасета
     # ------------------------------
     print("⚙ Конфигурация:\n", OmegaConf.to_yaml(cfg))
-    _ = download_dataset(cfg.dataset.name, cfg.dataset.download_path)
+    _ = download_dataset(cfg.load_dataset.name, cfg.load_dataset.download_path)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # ------------------------------
     # 2️⃣ Трансформации
     # ------------------------------
-    transforms = get_normalize_transform(cfg)
+    transforms = instantiate(cfg.transforms)
 
     # ------------------------------
-    # 3️⃣ Датасеты + train/val split
+    # 3️⃣ Создание датасета и разделение на train/val
     # ------------------------------
-    full_train_dataset = GtsrbDataset(
-        data_path=cfg.dataset.path, mode="train", transforms=transforms
-    )
-    train_size = int(0.8 * len(full_train_dataset))
-    val_size = len(full_train_dataset) - train_size
-    train_dataset, val_dataset = random_split(
-        full_train_dataset,
+    full_dataset = instantiate(cfg.dataset, mode="train", transforms=None)
+
+    train_size = int(0.8 * len(full_dataset))
+    val_size = len(full_dataset) - train_size
+
+    train_indices, val_indices = torch.utils.data.random_split(
+        list(range(len(full_dataset))),
         [train_size, val_size],
-        generator=torch.Generator().manual_seed(42)
+        generator=torch.Generator().manual_seed(1)
     )
 
-    # ------------------------------
-    # 4️⃣ DataLoader
-    # ------------------------------
-    train_loader = GTSRBDataLoader(train_dataset, cfg)
-    val_loader = GTSRBDataLoader(val_dataset, cfg)
+    train_dataset = Subset(full_dataset, train_indices)
+    val_dataset = Subset(full_dataset, val_indices)
+
+    # Применяем разные трансформации для train/val
+    train_dataset.dataset.transforms = transforms.train
+    val_dataset.dataset.transforms = transforms.test
 
     # ------------------------------
-    # 5️⃣ Модель, loss, optimizer
+    # 4️⃣ DataLoader’ы
     # ------------------------------
-    model = GTSRBCNN(num_classes=cfg.dataset.num_classes).to(device)
+    train_loader = instantiate(cfg.dataloader, dataset=train_dataset)
+    val_loader = instantiate(cfg.dataloader, dataset=val_dataset)
+
+    # ------------------------------
+    # 5️⃣ Модель, функция потерь, оптимизатор
+    # ------------------------------
+    model = instantiate(cfg.model)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=cfg.train.learning_rate)
 
     # ------------------------------
-    # 6️⃣ Метрики (для валидации можно использовать SimpleTrainer встроенные)
+    # 6️⃣ Метрики
     # ------------------------------
-    metrics = get_classification_metrics(cfg=cfg, device=device)
-    # Но в SimpleTrainer метрики встроены только в validate() как точность
+    metrics = instantiate(cfg.metrics, device=device)._metrics
 
     # ------------------------------
-    # 7️⃣ Создание и запуск тренера
+    # 7️⃣ Обучение
     # ------------------------------
     trainer = Trainer(
         model=model,
@@ -81,10 +82,8 @@ def main(cfg: DictConfig):
     # ------------------------------
     # 8️⃣ Тестирование
     # ------------------------------
-    test_dataset = GtsrbDataset(
-        data_path=cfg.dataset.path, mode="test", transforms=transforms
-    )
-    test_loader = GTSRBDataLoader(test_dataset, cfg)
+    test_dataset = instantiate(cfg.dataset, mode="test", transforms=transforms.test)
+    test_loader = instantiate(cfg.dataloader, dataset=test_dataset)
 
     _ = trainer.evaluate(test_loader)
 
