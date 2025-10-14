@@ -57,6 +57,32 @@ class Trainer:
         avg_loss = running_loss / len(self.val_loader.dataset)
         metric_results = self._compute_metrics()
         return avg_loss, metric_results
+    
+    def evaluate(self, loader):
+        """
+        Оценивает модель на любом DataLoader.
+        
+        Args:
+            loader (DataLoader): даталоадер для оценки (валидация, тест и т.д.)
+        
+        Returns:
+            loss (float), metrics_dict (dict)
+        """
+        self.model.eval()
+        running_loss = 0.0
+        self._reset_metrics()
+
+        with torch.no_grad():
+            for batch in tqdm(loader, desc="Evaluating"):
+                batch_loss, batch_preds, batch_labels = self._forward_batch(batch, train=False)
+                running_loss += batch_loss * batch_labels.size(0)
+                self._update_metrics(batch_preds, batch_labels)
+
+        test_loss = running_loss / len(loader.dataset)
+        test_metrics = self._compute_metrics()
+        self._print_metrics("Val", test_loss, test_metrics)
+        return test_loss, test_metrics
+
 
     def _forward_batch(self, batch, train=True):
         images = batch["image"].to(self.device)

@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import random_split
 from omegaconf import DictConfig, OmegaConf
+from src.dataloader.base_dataloader import GTSRBDataLoader
 import hydra
 from tqdm import tqdm
 
@@ -11,7 +12,7 @@ from src.dataset.gtsrb_dataset import GtsrbDataset
 from src.transforms.transforms import get_normalize_transform
 from src.model.base_model import GTSRBCNN
 from src.metrics.base_metrics import get_classification_metrics
-from src.trainer import Trainer  # наш минимальный тренер
+from src.trainer import Trainer 
 
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.3")
@@ -46,8 +47,8 @@ def main(cfg: DictConfig):
     # ------------------------------
     # 4️⃣ DataLoader
     # ------------------------------
-    train_loader = DataLoader(train_dataset, batch_size=cfg.train.batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=cfg.train.batch_size, shuffle=False)
+    train_loader = GTSRBDataLoader(train_dataset, cfg)
+    val_loader = GTSRBDataLoader(val_dataset, cfg)
 
     # ------------------------------
     # 5️⃣ Модель, loss, optimizer
@@ -83,10 +84,9 @@ def main(cfg: DictConfig):
     test_dataset = GtsrbDataset(
         data_path=cfg.dataset.path, mode="test", transforms=transforms
     )
-    test_loader = DataLoader(test_dataset, batch_size=cfg.train.batch_size, shuffle=False)
+    test_loader = GTSRBDataLoader(test_dataset, cfg)
 
-    test_loss, test_acc = trainer.validate()  # используем метод validate
-    print(f"\nTest Loss: {test_loss:.4f} | Test Accuracy: {test_acc:.4f}")
+    _ = trainer.evaluate(test_loader)
 
 
 if __name__ == "__main__":
