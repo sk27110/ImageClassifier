@@ -1,5 +1,10 @@
 import torch
 from tqdm import tqdm
+import logging
+
+
+logger = logging.getLogger("train")
+
 
 class Trainer:
     """
@@ -15,14 +20,17 @@ class Trainer:
         self.val_loader = val_loader
         self.metrics = metrics or {}  # словарь метрик {"accuracy": metric_obj, ...}
 
-        print(f"📌 Model device: {next(model.parameters()).device}")
+        logger.info(f"📌 Model device: {next(model.parameters()).device}")
+        # print(f"📌 Model device: {next(model.parameters()).device}")
         for batch in train_loader:
-            print(f"📌 First batch device: {batch['image'].device}")
+            logger.info(f"📌 First batch device: {batch['image'].device}")
+            # print(f"📌 First batch device: {batch['image'].device}")
             break
 
     def train(self, num_epochs=5):
         for epoch in range(num_epochs):
-            print(f"\nEpoch {epoch+1}/{num_epochs}")
+            logger.info(f"Epoch {epoch+1}/{num_epochs}")
+            # print(f"\nEpoch {epoch+1}/{num_epochs}")
 
             # ------------------------------
             # 1️⃣ Тренировочный шаг (train mode, только обновление весов)
@@ -54,7 +62,8 @@ class Trainer:
             running_loss += loss.item() * labels.size(0)
 
         avg_loss = running_loss / len(self.train_loader.dataset)
-        print(f"Train step Loss: {avg_loss:.4f}")
+        logger.info(f"Train step Loss: {avg_loss:.4f}")
+        # print(f"Train step Loss: {avg_loss:.4f}")
 
     def evaluate(self, loader, prefix="Val"):
         """
@@ -105,4 +114,5 @@ class Trainer:
 
     def _print_metrics(self, mode, loss, metrics_dict):
         metrics_str = " | ".join([f"{k}: {v:.4f}" for k, v in metrics_dict.items()])
-        print(f"{mode} Loss: {loss:.4f} | {metrics_str}")
+        logger.info(f"{mode} Loss: {loss:.4f} | {metrics_str}")
+        # print(f"{mode} Loss: {loss:.4f} | {metrics_str}")

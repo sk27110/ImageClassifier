@@ -4,6 +4,9 @@ import requests
 from tqdm import tqdm
 from pathlib import Path
 import json
+import logging
+
+logger = logging.getLogger("load_data")
 
 
 def download_dataset(dataset_name: str, download_dir: str, conf_dir: str = "./conf") -> str:
@@ -24,6 +27,7 @@ def download_dataset(dataset_name: str, download_dir: str, conf_dir: str = "./co
 
     kaggle_json_path = Path(conf_dir) / "kaggle.json"
     if not kaggle_json_path.exists():
+        logger.error(f"❌ Не найден {kaggle_json_path}")
         raise FileNotFoundError(f"❌ Не найден {kaggle_json_path}")
 
     # Загружаем токен
@@ -39,15 +43,16 @@ def download_dataset(dataset_name: str, download_dir: str, conf_dir: str = "./co
 
     # --- 🔍 Проверка: уже скачано ---
     if extracted_path.exists() and any(extracted_path.iterdir()):
-        print(f"✅ Датасет уже существует по пути: {extracted_path}")
+        logger.info(f"✅ Датасет уже существует по пути: {extracted_path}")
         return str(extracted_path)
 
     url = f"https://www.kaggle.com/api/v1/datasets/download/{dataset_name}"
-    print(f"📦 Скачиваем {dataset_name} в {zip_path} ...")
+    logger.info(f"📦 Скачиваем {dataset_name} в {zip_path} ...")
 
     # --- ⬇️ Скачиваем с прогрессом ---
     with requests.get(url, auth=(username, key), stream=True) as r:
         if r.status_code != 200:
+            logger.error(f"Ошибка загрузки: {r.status_code}, {r.text[:200]}")
             raise RuntimeError(f"Ошибка загрузки: {r.status_code}, {r.text[:200]}")
 
         total_size = int(r.headers.get("content-length", 0))
@@ -59,17 +64,17 @@ def download_dataset(dataset_name: str, download_dir: str, conf_dir: str = "./co
                 f.write(chunk)
                 pbar.update(len(chunk))
 
-    print(f"✅ Загружено: {zip_path}")
+    logger.info(f"✅ Загружено: {zip_path}")
 
     # --- 📂 Распаковываем ---
     extracted_path.mkdir(parents=True, exist_ok=True)
-    print(f"📂 Распаковка в {extracted_path} ...")
+    logger.info(f"📂 Распаковка в {extracted_path} ...")
 
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
         for member in tqdm(zip_ref.infolist(), desc="📦 Extracting"):
             zip_ref.extract(member, extracted_path)
 
-    print(f"✅ Распаковано в: {extracted_path}")
+    logger.info(f"✅ Распаковано в: {extracted_path}")
 
     # --- 🧹 Удаляем zip ---
     zip_path.unlink(missing_ok=True)

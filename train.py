@@ -5,17 +5,36 @@ from torch.utils.data import random_split, Subset
 from omegaconf import DictConfig, OmegaConf
 from hydra.utils import instantiate
 import hydra
-
+import logging
 from src.dataset.load_dataset import download_dataset
 from src.trainer import Trainer
+import os
 
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.3")
 def main(cfg: DictConfig):
+    log_dir = os.getcwd()
+    log_path = os.path.join(log_dir, "train.log")
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(log_path, mode="w"),
+            logging.StreamHandler()
+        ]
+    )
+
+    logger = logging.getLogger("main")
+
+    logger.info("\n" + "=" * 50)
+    logger.info("⚙ Текущая конфигурация Hydra:\n%s", OmegaConf.to_yaml(cfg))
+    logger.info("=" * 50 + "\n")
+
     # ------------------------------
     # 1️⃣ Конфигурация и скачивание датасета
     # ------------------------------
-    print("⚙ Конфигурация:\n", OmegaConf.to_yaml(cfg))
+
     _ = download_dataset(cfg.load_dataset.name, cfg.load_dataset.download_path)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
