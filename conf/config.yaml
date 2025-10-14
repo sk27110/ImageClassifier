@@ -1,0 +1,8 @@
+defaults:
+  - dataset: gtsrb   
+  - transforms: base_transform
+  - dataloader: base_dataloader
+  - train: train
+# batch_size: 64
+# epochs: 20
+# lr: 0.001

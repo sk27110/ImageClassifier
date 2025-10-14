@@ -1,0 +1,6 @@
+path: "./data/datasets/meowmeowmeowmeowmeow/gtsrb-german-traffic-sign/versions/1"
+download_path: "./data"
+name: "meowmeowmeowmeowmeow/gtsrb-german-traffic-sign"
+num_classes: 43
+image_size: 32
+
