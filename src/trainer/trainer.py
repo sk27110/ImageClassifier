@@ -14,6 +14,11 @@ class Trainer:
         self.val_loader = val_loader
         self.metrics = metrics or {}  # словарь метрик {"accuracy": metric_obj, ...}
 
+        print(f"📌 Model device: {next(model.parameters()).device}")
+        for batch in train_loader:
+            print(f"📌 First batch device: {batch['image'].device}")
+            break
+
     def train(self, num_epochs=5):
         for epoch in range(num_epochs):
             print(f"\nEpoch {epoch+1}/{num_epochs}")
