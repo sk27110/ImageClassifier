@@ -2,23 +2,6 @@ from torchvision import transforms
 import ast
 
 
-# def get_normalize_transform(cfg):
-#     normalize_transform = transforms.Compose([
-#         transforms.Resize(ast.literal_eval(cfg.transforms.resize)),
-
-#         # Аугментации для тренировки
-#         transforms.RandomRotation(15),          # случайный поворот ±15 градусов
-#         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),  # изменение яркости/контраста/насыщенности
-#         transforms.RandomHorizontalFlip(),      # случайное горизонтальное отражение (для некоторых знаков можно убрать, если знак не симметричный)
-
-#         transforms.ToTensor(),
-#         transforms.Normalize(
-#             mean=ast.literal_eval(cfg.transforms.mean),
-#             std=ast.literal_eval(cfg.transforms.std)
-#         )
-#     ])
-#     return normalize_transform
-
 class Transforms:
     def __init__(
         self,
@@ -41,13 +24,30 @@ class Transforms:
 
         self.train = transforms.Compose([
             transforms.Resize(ast.literal_eval(self.resize)),
-            transforms.RandomRotation(15),          # случайный поворот ±15 градусов
-            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),  # изменение яркости/контраста/насыщенности
-            transforms.RandomHorizontalFlip(),      # случайное горизонтальное отражение (для некоторых знаков можно убрать, если знак не симметричный)
+            transforms.RandomRotation(20),  # случайный поворот ±20°
+            transforms.RandomHorizontalFlip(p=0.5),  # отражение
+            transforms.RandomVerticalFlip(p=0.1),  # иногда вертикально
+
+            transforms.ColorJitter( 
+                brightness=0.3, contrast=0.3, saturation=0.3, hue=0.02
+            ),  # цветовые искажения
+
+            transforms.RandomGrayscale(p=0.05),  # иногда делаем ч/б
+            transforms.RandomAffine(
+                degrees=0,
+                translate=(0.1, 0.1),  # небольшие сдвиги
+                scale=(0.9, 1.1),      # масштабирование
+                shear=10               # сдвиг по углу
+            ),
+
+            transforms.RandomPerspective(distortion_scale=0.2, p=0.3),  # имитация перспективных искажений
+            transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),   # немного размываем
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=ast.literal_eval(self.mean),
                 std=ast.literal_eval(self.std)
             )
         ])
+
+
 

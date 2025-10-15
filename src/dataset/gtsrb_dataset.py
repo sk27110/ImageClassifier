@@ -49,15 +49,7 @@ class GtsrbDataset(BaseDataset):
 
             index.append({
                 "path": str(img_path.resolve()),
-                "label": int(row["ClassId"]),
-                "width": int(row["Width"]),
-                "height": int(row["Height"]),
-                "bbox": [
-                    int(row["Roi.X1"]),
-                    int(row["Roi.Y1"]),
-                    int(row["Roi.X2"]),
-                    int(row["Roi.Y2"])
-                ]
+                "label": int(row["ClassId"])
             })
         return index
 
@@ -70,10 +62,7 @@ class GtsrbDataset(BaseDataset):
 
         return {
             "image": image,
-            "label": sample["label"],
-            # "width": sample["width"],
-            # "height": sample["height"],
-            # "bbox": sample["bbox"]
+            "label": sample["label"]
         }
 
     def __len__(self):

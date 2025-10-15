@@ -18,28 +18,17 @@ class Trainer:
         self.device = device
         self.train_loader = train_loader
         self.val_loader = val_loader
-        self.metrics = metrics or {}  # словарь метрик {"accuracy": metric_obj, ...}
+        self.metrics = metrics or {}
 
         logger.info(f"📌 Model device: {next(model.parameters()).device}")
-        # print(f"📌 Model device: {next(model.parameters()).device}")
         for batch in train_loader:
             logger.info(f"📌 First batch device: {batch['image'].device}")
-            # print(f"📌 First batch device: {batch['image'].device}")
             break
 
     def train(self, num_epochs=5):
         for epoch in range(num_epochs):
             logger.info(f"Epoch {epoch+1}/{num_epochs}")
-            # print(f"\nEpoch {epoch+1}/{num_epochs}")
-
-            # ------------------------------
-            # 1️⃣ Тренировочный шаг (train mode, только обновление весов)
-            # ------------------------------
             self._train_one_epoch()
-
-            # ------------------------------
-            # 2️⃣ Подсчёт метрик после обучения эпохи (eval mode)
-            # ------------------------------
             train_metrics = self.evaluate(self.train_loader, prefix="Train")
             if self.val_loader is not None:
                 val_metrics = self.evaluate(self.val_loader, prefix="Val")
@@ -63,7 +52,7 @@ class Trainer:
 
         avg_loss = running_loss / len(self.train_loader.dataset)
         logger.info(f"Train step Loss: {avg_loss:.4f}")
-        # print(f"Train step Loss: {avg_loss:.4f}")
+
 
     def evaluate(self, loader, prefix="Val"):
         """
@@ -115,4 +104,3 @@ class Trainer:
     def _print_metrics(self, mode, loss, metrics_dict):
         metrics_str = " | ".join([f"{k}: {v:.4f}" for k, v in metrics_dict.items()])
         logger.info(f"{mode} Loss: {loss:.4f} | {metrics_str}")
-        # print(f"{mode} Loss: {loss:.4f} | {metrics_str}")

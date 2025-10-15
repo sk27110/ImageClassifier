@@ -58,12 +58,11 @@ def main(cfg: DictConfig):
         generator=torch.Generator().manual_seed(1)
     )
 
-    train_dataset = Subset(full_dataset, train_indices)
-    val_dataset = Subset(full_dataset, val_indices)
+    train_dataset = instantiate(cfg.dataset, mode="train", transforms=transforms.train)
+    val_dataset = instantiate(cfg.dataset, mode="train", transforms=transforms.test)
 
-    # Применяем разные трансформации для train/val
-    train_dataset.dataset.transforms = transforms.train
-    val_dataset.dataset.transforms = transforms.test
+    train_dataset = torch.utils.data.Subset(train_dataset, train_indices)
+    val_dataset = torch.utils.data.Subset(val_dataset, val_indices)
 
     # ------------------------------
     # 4️⃣ DataLoader’ы
