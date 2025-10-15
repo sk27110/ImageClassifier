@@ -20,10 +20,11 @@ class Trainer:
         self.val_loader = val_loader
         self.metrics = metrics or {}
 
+        self.model.to(self.device)
+
         logger.info(f"📌 Model device: {next(model.parameters()).device}")
-        for batch in train_loader:
-            logger.info(f"📌 First batch device: {batch['image'].device}")
-            break
+        logger.info(f"📌 Batch device: {device}")
+
 
     def train(self, num_epochs=5):
         for epoch in range(num_epochs):
