@@ -74,6 +74,7 @@ def main(cfg: DictConfig):
     # 5️⃣ Модель, функция потерь, оптимизатор
     # ------------------------------
     model = instantiate(cfg.model)
+    model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=cfg.train.learning_rate)
 
