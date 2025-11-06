@@ -9,6 +9,7 @@ import logging
 from src.dataset.load_dataset import download_dataset
 from src.trainer import Trainer
 import os
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.3")
@@ -76,6 +77,13 @@ def main(cfg: DictConfig):
     model = instantiate(cfg.model)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=cfg.train.learning_rate)
+    scheduler = ReduceLROnPlateau(
+        optimizer, 
+        mode='min',        # следим за уменьшением val_loss
+        factor=0.5,        # уменьшаем LR в 2 раза
+        patience=5,        # ждем 5 эпох без улучшения
+        min_lr=1e-7        # минимальный LR
+    )
 
     # ------------------------------
     # 6️⃣ Метрики
@@ -92,7 +100,8 @@ def main(cfg: DictConfig):
         device=device,
         train_loader=train_loader,
         val_loader=val_loader,
-        metrics=metrics
+        metrics=metrics,
+        scheduler=scheduler
     )
 
     trainer.train(num_epochs=cfg.train.num_epoch)
