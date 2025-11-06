@@ -1,1 +1,1 @@
-from src.dataloader.gtsrb_dataloader import GTSRBDataLoader
+from src.dataloader.base_dataloader import BaseDataLoader

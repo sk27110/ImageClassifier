@@ -1,4 +1,4 @@
-_target_: src.dataloader.GTSRBDataLoader
+_target_: src.dataloader.BaseDataLoader
 batch_size: 16
 shuffle: True
 num_workers: 4

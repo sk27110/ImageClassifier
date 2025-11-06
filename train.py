@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from torch.utils.data import random_split, Subset
 from omegaconf import DictConfig, OmegaConf
 from hydra.utils import instantiate
@@ -76,14 +75,8 @@ def main(cfg: DictConfig):
     # ------------------------------
     model = instantiate(cfg.model)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=cfg.train.learning_rate)
-    scheduler = ReduceLROnPlateau(
-        optimizer, 
-        mode='min',        # следим за уменьшением val_loss
-        factor=0.5,        # уменьшаем LR в 2 раза
-        patience=5,        # ждем 5 эпох без улучшения
-        min_lr=1e-7        # минимальный LR
-    )
+    optimizer = instantiate(cfg.optimizer, model = model)
+    scheduler = instantiate(cfg.scheduler, optimizer=optimizer)
 
     # ------------------------------
     # 6️⃣ Метрики
@@ -101,11 +94,16 @@ def main(cfg: DictConfig):
         train_loader=train_loader,
         val_loader=val_loader,
         metrics=metrics,
-        scheduler=scheduler
+        scheduler=scheduler,
+        log_dir=cfg.log_dir
     )
 
-    trainer.train(num_epochs=cfg.train.num_epoch)
-
+    # trainer.train(num_epochs=cfg.train.num_epoch)
+    train_losses, val_losses = trainer.train(
+    num_epochs=cfg.train.num_epoch,    # Максимум эпох
+    patience=12,       # Останавливаться после 10 эпох без улучшений
+    min_epochs=80      # Начинать проверять early stopping только после 30 эпох
+)
     # ------------------------------
     # 8️⃣ Тестирование
     # ------------------------------
