@@ -6,8 +6,8 @@ logger = logging.getLogger("train")
 
 class Trainer:
     """
-    Универсальный тренер для классификации с единым подсчётом метрик.
-    Метрики считаются в режиме eval для train/val/test, чтобы сравнивать корректно.
+    Универсальный тренер для классификации. 
+    Метрики считаются только на валидации, на трейне только loss.
     """
     def __init__(self, model, criterion, optimizer, device, train_loader, scheduler, metrics=None, val_loader=None):
         self.model = model
@@ -26,62 +26,65 @@ class Trainer:
 
     def train(self, num_epochs=5):
         best_val_loss = float('inf')
-        best_epoch = 0
+        train_losses = []
+        val_losses = []
         
         for epoch in range(num_epochs):
             logger.info(f"Epoch {epoch+1}/{num_epochs}")
             
-            self._train_one_epoch()
+            # 1. Обучаем одну эпоху и получаем train loss
+            train_loss = self._train_one_epoch()
+            train_losses.append(train_loss)
             
             current_lr = self.optimizer.param_groups[0]['lr']
-            logger.info(f"📊 Current Learning Rate: {current_lr:.2e}")
+            logger.info(f"📊 LR: {current_lr:.2e}, Train Loss: {train_loss:.4f}")
             
-            # Оцениваем на тренировочных данных
-            train_metrics = self.evaluate(self.train_loader, prefix="Train")
-            
-            # Оцениваем на валидационных данных (если есть)
+            # 2. Валидация (если есть)
+            val_loss = None
             if self.val_loader is not None:
-                val_metrics = self.evaluate(self.val_loader, prefix="Val")
+                val_loss, val_metrics = self._validate()
+                val_losses.append(val_loss)
                 
                 # Сохраняем лучшую модель
-                if 'loss' in val_metrics and val_metrics['loss'] < best_val_loss:
-                    best_val_loss = val_metrics['loss']
-                    best_epoch = epoch + 1
-                    # Сохраняем модель (добавьте путь для сохранения)
-                    # torch.save(self.model.state_dict(), f'best_model_epoch_{epoch+1}.pth')
-                    logger.info(f"🏆 New best model! Val Loss: {best_val_loss:.4f}")
+                if val_loss < best_val_loss:
+                    best_val_loss = val_loss
+                    # torch.save(self.model.state_dict(), 'best_model.pth')
+                    logger.info(f"🏆 New best model! Val Loss: {val_loss:.4f}")
                 
-                # Обновляем scheduler на основе валидационной потери
+                # Обновляем scheduler на основе валидационного loss
                 if self.scheduler is not None:
-                    if hasattr(self.scheduler, 'step'):
-                        # Для ReduceLROnPlateau передаем валидационный loss
-                        if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                            self.scheduler.step(val_metrics['loss'])
-                        else:
-                            # Для других scheduler'ов (StepLR, CosineAnnealing, etc.)
-                            self.scheduler.step()
-                    
-                    # Логируем новый LR после обновления
+                    if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                        self.scheduler.step(val_loss)
+                    else:
+                        self.scheduler.step()
+                        
+                    # Логируем изменение LR
                     new_lr = self.optimizer.param_groups[0]['lr']
                     if new_lr != current_lr:
                         logger.info(f"🔄 Learning Rate updated: {new_lr:.2e}")
             
-            # Если нет валидации, обновляем scheduler на основе тренировочной потери
+            # 3. Если нет валидации, обновляем scheduler на основе train loss
             elif self.scheduler is not None:
-                if hasattr(self.scheduler, 'step'):
-                    self.scheduler.step()
+                self.scheduler.step()
         
-        # Финальное сообщение
+        # Финальная статистика
         if self.val_loader is not None:
-            logger.info(f"🎯 Training completed! Best model at epoch {best_epoch} with Val Loss: {best_val_loss:.4f}")
+            logger.info(f"🎯 Training completed! Best Val Loss: {best_val_loss:.4f}")
+        
+        return train_losses, val_losses
 
     def _train_one_epoch(self):
+        """Обучаем одну эпоху и возвращаем средний loss"""
         self.model.train()
         running_loss = 0.0
+        total_samples = 0
 
         for batch in tqdm(self.train_loader, desc="Training"):
             images = batch["image"].to(self.device)
             labels = batch["label"].to(self.device)
+            
+            batch_size = labels.size(0)
+            total_samples += batch_size
 
             outputs = self.model(images)
             loss = self.criterion(outputs, labels)
@@ -90,37 +93,38 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
 
-            running_loss += loss.item() * labels.size(0)
+            running_loss += loss.item() * batch_size
 
-        avg_loss = running_loss / len(self.train_loader.dataset)
-        logger.info(f"Train step Loss: {avg_loss:.4f}")
+        avg_loss = running_loss / total_samples
+        return avg_loss
 
-    def evaluate(self, loader, prefix="Val"):
-        """
-        Единый способ подсчёта метрик в режиме eval.
-        Можно использовать для train/val/test.
-        """
+    def _validate(self):
+        """Валидация с метриками"""
         self.model.eval()
         running_loss = 0.0
+        total_samples = 0
         self._reset_metrics()
 
         with torch.no_grad():
-            for batch in tqdm(loader, desc=f"Evaluating {prefix}"):
+            for batch in tqdm(self.val_loader, desc="Validating"):
                 images = batch["image"].to(self.device)
                 labels = batch["label"].to(self.device)
+                
+                batch_size = labels.size(0)
+                total_samples += batch_size
 
                 outputs = self.model(images)
                 loss = self.criterion(outputs, labels)
-                running_loss += loss.item() * labels.size(0)
+                running_loss += loss.item() * batch_size
 
                 preds = torch.argmax(outputs, dim=1)
                 self._update_metrics(preds, labels)
 
-        avg_loss = running_loss / len(loader.dataset)
+        avg_loss = running_loss / total_samples
         metric_results = self._compute_metrics()
-        metric_results['loss'] = avg_loss  # Добавляем loss в результаты метрик
-        self._print_metrics(prefix, avg_loss, metric_results)
-        return metric_results
+        self._print_metrics(avg_loss, metric_results)
+        
+        return avg_loss, metric_results
 
     def _reset_metrics(self):
         for metric in self.metrics.values():
@@ -143,6 +147,42 @@ class Trainer:
                 results[name] = None
         return results
 
-    def _print_metrics(self, mode, loss, metrics_dict):
-        metrics_str = " | ".join([f"{k}: {v:.4f}" for k, v in metrics_dict.items() if k != 'loss'])
-        logger.info(f"{mode} Loss: {loss:.4f} | {metrics_str}")
+    def _print_metrics(self, loss, metrics_dict):
+        metrics_str = " | ".join([f"{k}: {v:.4f}" for k, v in metrics_dict.items()])
+        logger.info(f"Val Loss: {loss:.4f} | {metrics_str}")
+
+    def test(self, test_loader):
+        """Отдельный метод для тестирования на финальном датасете"""
+        logger.info("🧪 Final testing on test set")
+        test_loss, test_metrics = self._evaluate_loader(test_loader, "Test")
+        return test_loss, test_metrics
+
+    def _evaluate_loader(self, loader, prefix="Eval"):
+        """Универсальная оценка на любом лоадере"""
+        self.model.eval()
+        running_loss = 0.0
+        total_samples = 0
+        self._reset_metrics()
+
+        with torch.no_grad():
+            for batch in tqdm(loader, desc=f"Evaluating {prefix}"):
+                images = batch["image"].to(self.device)
+                labels = batch["label"].to(self.device)
+                
+                batch_size = labels.size(0)
+                total_samples += batch_size
+
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
+                running_loss += loss.item() * batch_size
+
+                preds = torch.argmax(outputs, dim=1)
+                self._update_metrics(preds, labels)
+
+        avg_loss = running_loss / total_samples
+        metric_results = self._compute_metrics()
+        
+        metrics_str = " | ".join([f"{k}: {v:.4f}" for k, v in metric_results.items()])
+        logger.info(f"{prefix} Loss: {avg_loss:.4f} | {metrics_str}")
+        
+        return avg_loss, metric_results

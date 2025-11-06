@@ -112,7 +112,7 @@ def main(cfg: DictConfig):
     test_dataset = instantiate(cfg.dataset, mode="test", transforms=transforms.test)
     test_loader = instantiate(cfg.dataloader, dataset=test_dataset)
 
-    _ = trainer.evaluate(test_loader)
+    trainer.test(test_loader)
 
 
 if __name__ == "__main__":
