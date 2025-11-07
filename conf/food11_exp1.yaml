@@ -3,7 +3,7 @@ defaults:
   - transforms: base_transform
   - dataloader: base_dataloader
   - train: train
-  - model: light_model
+  - model: resnet
   - load_dataset: food
   - metrics: base_classification_metrics
   - optimizer: adam
