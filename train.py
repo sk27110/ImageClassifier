@@ -13,6 +13,13 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.3")
 def main(cfg: DictConfig):
+
+    seed = cfg.seed
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # если используется несколько GPU
+
+
     log_dir = os.getcwd()
     log_path = os.path.join(log_dir, "train.log")
 
@@ -67,8 +74,11 @@ def main(cfg: DictConfig):
     # ------------------------------
     # 4️⃣ DataLoader’ы
     # ------------------------------
-    train_loader = instantiate(cfg.dataloader, dataset=train_dataset)
-    val_loader = instantiate(cfg.dataloader, dataset=val_dataset)
+    dataloader_generator = torch.Generator()
+    dataloader_generator.manual_seed(seed)
+
+    train_loader = instantiate(cfg.dataloader, dataset=train_dataset, generator=dataloader_generator)
+    val_loader = instantiate(cfg.dataloader, dataset=val_dataset, generator=dataloader_generator)
 
     # ------------------------------
     # 5️⃣ Модель, функция потерь, оптимизатор
@@ -108,7 +118,7 @@ def main(cfg: DictConfig):
     # 8️⃣ Тестирование
     # ------------------------------
     test_dataset = instantiate(cfg.dataset, mode="test", transforms=transforms.test)
-    test_loader = instantiate(cfg.dataloader, dataset=test_dataset)
+    test_loader = instantiate(cfg.dataloader, dataset=test_dataset, shuffle = False)
 
     trainer.test(test_loader)
 

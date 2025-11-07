@@ -6,7 +6,9 @@ defaults:
   - model: resnet
   - load_dataset: food
   - metrics: base_classification_metrics
-  - optimizer: adam
+  - optimizer: adamw
   - scheduler: reduce_lron_plateau
 
+
 log_dir: experiments/exp1
+seed: 42
