@@ -17,10 +17,12 @@ def main(cfg: DictConfig):
     seed = cfg.seed
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # если используется несколько GPU
+    torch.cuda.manual_seed_all(seed)
 
-
-    log_dir = os.getcwd()
+    hydra_output_dir = os.getcwd()
+    log_dir = os.path.join(hydra_output_dir, cfg.experiment.log_dir)
+    os.makedirs(log_dir, exist_ok=True)
+    
     log_path = os.path.join(log_dir, "train.log")
 
     logging.basicConfig(
@@ -105,7 +107,8 @@ def main(cfg: DictConfig):
         val_loader=val_loader,
         metrics=metrics,
         scheduler=scheduler,
-        log_dir=cfg.log_dir
+        log_dir=cfg.experiment.tb_log_dir,
+        save_path = cfg.experiment.best_model_save_path
     )
 
     # trainer.train(num_epochs=cfg.train.num_epoch)

@@ -45,7 +45,7 @@ class ResNet(nn.Module):
         self.classifier = nn.Sequential(
             nn.AdaptiveAvgPool2d((1,1)), 
             nn.Flatten(),
-            nn.Dropout(0.2),             
+            nn.Dropout(0.5),             
             nn.Linear(256, num_classes)
         )
 

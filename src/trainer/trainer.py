@@ -13,7 +13,7 @@ class Trainer:
     Универсальный тренер для классификации. 
     Метрики считаются только на валидации, на трейне только loss.
     """
-    def __init__(self, model, criterion, optimizer, device, train_loader, scheduler, metrics=None, val_loader=None, log_dir=None):
+    def __init__(self, model, criterion, optimizer=None, device=None, train_loader=None, scheduler=None, metrics=None, val_loader=None, log_dir=None, save_path=None):
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
@@ -24,6 +24,12 @@ class Trainer:
         self.metrics = metrics or {}
 
         self.model.to(self.device)
+        self.save_path = save_path
+        if save_path:
+            # Создаем папку для модели, если путь включает директорию
+            save_dir = os.path.dirname(save_path)
+            if save_dir:  # если путь содержит директорию (не просто "model.pth")
+                os.makedirs(save_dir, exist_ok=True)
 
         # Инициализация TensorBoard
         if log_dir is None:
@@ -100,7 +106,7 @@ class Trainer:
                     best_val_loss = val_loss
                     best_epoch = epoch + 1
                     epochs_without_improvement = 0
-                    torch.save(self.model.state_dict(), 'best_model.pth')
+                    torch.save(self.model.state_dict(), self.save_path)
                     logger.info(f"🏆 New best model! Val Loss: {val_loss:.4f}")
                     
                     # Логируем веса модели для лучшей эпохи

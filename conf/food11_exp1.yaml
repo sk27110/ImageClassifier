@@ -1,6 +1,6 @@
 defaults:
   - dataset: food11   
-  - transforms: base_transform
+  - transforms: transforms_v1
   - dataloader: base_dataloader
   - train: train
   - model: resnet
@@ -10,5 +10,22 @@ defaults:
   - scheduler: reduce_lron_plateau
 
 
-log_dir: experiments/exp1
 seed: 42
+
+
+experiment:
+  name: "exp1"
+  log_dir: experiments/${experiment.name}/
+  tb_log_dir: runs/${experiment.name}
+  best_model_save_path: experiments/${experiment.name}/models/best_model.pth
+
+
+hydra:
+  run:
+    dir: experiments/${experiment.name}/
+  
+  sweep:
+    dir: experiments/${experiment.name}/multirun/
+  
+  job:
+    chdir: false
