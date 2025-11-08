@@ -44,6 +44,6 @@ datasets/
 .DS_Store
 
 # Other temp files
-*.log
+
 *.tmp
 *.swp
