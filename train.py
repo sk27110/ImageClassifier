@@ -86,6 +86,7 @@ def main(cfg: DictConfig):
     # 5️⃣ Модель, функция потерь, оптимизатор
     # ------------------------------
     model = instantiate(cfg.model)
+    model.load_state_dict(torch.load(cfg.experiment.last_model, map_location='cpu'))
     criterion = nn.CrossEntropyLoss()
     optimizer = instantiate(cfg.optimizer, model = model)
     scheduler = instantiate(cfg.scheduler, optimizer=optimizer)

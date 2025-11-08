@@ -14,10 +14,11 @@ seed: 42
 
 
 experiment:
-  name: "exp2"
+  name: "exp3"
   log_dir: experiments/${experiment.name}/
   tb_log_dir: runs/${experiment.name}
   best_model_save_path: experiments/${experiment.name}/models/best_model.pth
+  last_model: experiments/exp2/models/best_model.pth
 
 
 hydra:

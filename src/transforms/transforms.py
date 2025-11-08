@@ -43,7 +43,7 @@ class Transforms_v1:
 
 
 
-class Transform_v2:
+class Transforms_v2:
     def __init__(
         self,
         mean, 
@@ -74,13 +74,14 @@ class Transform_v2:
                 p=0.2  
             ),
             
-            transforms.RandomAffine(
-                degrees=0,           
-                translate=(0.1, 0.1), 
-                scale=(0.8, 1.2),  
-                shear=10,   
-                p=0.3
-            ),
+            transforms.RandomApply([
+                transforms.RandomAffine(
+                    degrees=0,           
+                    translate=(0.1, 0.1), 
+                    scale=(0.8, 1.2),  
+                    shear=10
+                )
+            ], p=0.3),
 
             transforms.ColorJitter( 
                 brightness=0.3, contrast=0.3, saturation=0.3, hue=0.02

@@ -13,7 +13,7 @@ class Trainer:
     Универсальный тренер для классификации. 
     Метрики считаются только на валидации, на трейне только loss.
     """
-    def __init__(self, model, criterion, optimizer=None, device=None, train_loader=None, scheduler=None, metrics=None, val_loader=None, log_dir=None, save_path=None):
+    def __init__(self, model, criterion, optimizer=None, device=None, train_loader=None, scheduler=None, metrics=None, val_loader=None, log_dir=None, save_path=None, log_tb=True):
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
@@ -25,6 +25,7 @@ class Trainer:
 
         self.model.to(self.device)
         self.save_path = save_path
+        self.log_tb = log_tb
         if save_path:
             # Создаем папку для модели, если путь включает директорию
             save_dir = os.path.dirname(save_path)
@@ -32,7 +33,7 @@ class Trainer:
                 os.makedirs(save_dir, exist_ok=True)
 
         # Инициализация TensorBoard
-        if log_dir is None:
+        if log_dir is None and self.log_tb:
             log_dir = f"runs/experiment_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.writer = SummaryWriter(log_dir)
         logger.info(f"📊 TensorBoard logging to: {log_dir}")
@@ -282,9 +283,10 @@ class Trainer:
         test_loss, test_metrics = self._evaluate_loader(test_loader, "Test")
         
         # Логируем финальные метрики
-        self.writer.add_scalar('Loss/test_final', test_loss)
-        for metric_name, metric_value in test_metrics.items():
-            self.writer.add_scalar(f'Metrics/test_{metric_name}', metric_value)
+        if self.log_tb:
+            self.writer.add_scalar('Loss/test_final', test_loss)
+            for metric_name, metric_value in test_metrics.items():
+                self.writer.add_scalar(f'Metrics/test_{metric_name}', metric_value)
         
         return test_loss, test_metrics
 
