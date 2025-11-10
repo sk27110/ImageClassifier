@@ -1,6 +1,6 @@
 _target_: src.scheduler.ReduceLROnPlateauScheduler
 mode: 'min'
-factor: 0.7           # Более плавное уменьшение (в 1.43 раза)
-patience: 8          # Больше терпения
-threshold: 0.0001     # Более чувствительный
+factor: 0.5           
+patience: 6          
+threshold: 0.0001     
 min_lr: 1e-7
