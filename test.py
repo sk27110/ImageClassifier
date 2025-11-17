@@ -5,7 +5,7 @@ import hydra
 from src.trainer import Trainer
 
 
-@hydra.main(config_path="conf", config_name="food11_exp1", version_base="1.3")
+@hydra.main(config_path="conf", config_name="food11_exp7", version_base="1.3")
 def main(cfg: DictConfig):
     transforms = instantiate(cfg.transforms)
     test_dataset = instantiate(cfg.dataset, mode="test", transforms=transforms.test)

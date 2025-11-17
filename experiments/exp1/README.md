@@ -1,7 +1,7 @@
 ## Обучение ResNet на датасете food11
 
 ### Параметры конфига
-
+```
 dataset:
   _target_: src.dataset.FoodDataset
   data_path: ./data/food11
@@ -41,7 +41,7 @@ scheduler:
   min_lr: 1.0e-07
 log_dir: experiments/exp1
 seed: 42
-
+```
 ## Описание эксперимента
 - Число эпох: 76 (обучение было прервано по причине ограничения вычислительных ресурсов)
 - Dropout модели: 0.2
