@@ -23,17 +23,17 @@ class Transforms_v1:
         ])
         self.train = transforms.Compose([
             transforms.Resize(self.resize),
-            transforms.RandomRotation(20),  # случайный поворот ±20°
-            transforms.RandomHorizontalFlip(p=0.5),  # отражение
-            transforms.RandomVerticalFlip(p=0.1),  # иногда вертикально
+            transforms.RandomRotation(20), 
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.1),
 
             transforms.ColorJitter( 
                 brightness=0.3, contrast=0.3, saturation=0.3, hue=0.02
-            ),  # цветовые искажения
-            transforms.RandomGrayscale(p=0.05),  # иногда делаем ч/б
+            ), 
+            transforms.RandomGrayscale(p=0.05), 
 
 
-            transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)),   # немного размываем
+            transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)), 
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=ast.literal_eval(self.mean),

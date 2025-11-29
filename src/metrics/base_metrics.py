@@ -2,11 +2,6 @@ import torch
 from torchmetrics.classification import Accuracy, Precision, Recall, F1Score
 
 class ClassificationMetrics:
-    """
-    Класс для стандартных метрик мультиклассовой классификации.
-    Содержит accuracy, precision, recall и F1.
-    """
-
     def __init__(self, num_classes: int, device: str = "cpu"):
         self.device = device
         self.num_classes = num_classes
